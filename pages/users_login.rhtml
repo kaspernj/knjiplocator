@@ -1,0 +1,56 @@
+<%
+	if _get["choice"] == "dologin"
+		user = $ob.get_by(:User, {
+			"username" => _post["texname"],
+			"password" => Knj::Php.md5(_post["texpass"])
+		})
+		if !user
+			_kas.alert(_("No user with that username and/or password."))
+			_kas.back
+		else
+			_session[:user_id] = user.id
+			_kas.redirect("/?show=users_login")
+		end
+	end
+	
+	if _get["choice"] == "dologout"
+		_session.delete(:user_id)
+		_kas.redirect("/?show=users_login")
+	end
+	
+	print $site.header(_("Log in"))
+	
+	if $site.user
+		print sprintf(_("You are logged in as %s."), $site.user.html)
+	else
+		%>
+			<form method="post" action="/?show=users_login&amp;choice=dologin">
+			
+			<%=$site.boxt(_("Enter details"), "350px")%>
+				<table class="form">
+					<%
+						print Knj::Web.inputs([{
+							:title => _("Username"),
+							:name => :texname
+						},{
+							:title => _("Password"),
+							:name => :texpass,
+							:type => :password
+						}])
+					%>
+					<tr>
+						<td colspan="2" class="buttons">
+							<input type="submit" value="<%=_("Log in")%>" />
+						</td>
+					</tr>
+				</table>
+			<%=$site.boxb%>
+			
+			</form>
+			
+			<script type="text/javascript">
+				$("#texname").focus();
+			</script>
+		<%
+	end
+%>

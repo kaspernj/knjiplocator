@@ -1,0 +1,64 @@
+<%
+	print $site.header(_("Look up"))
+%>
+
+<form method="get">
+<input type="hidden" name="show" value="lookup" />
+<input type="hidden" name="choice" value="dolookup" />
+
+<%=$site.boxt(_("Enter details"), "350px")%>
+	<table class="form">
+		<%
+			print Knj::Web.inputs([{
+				:title => "IP",
+				:name => :texip,
+				:value => _get["texip"]
+			}])
+		%>
+		<tr>
+			<td colspan="2" class="buttons">
+				<input type="submit" value="<%=_("Look up")%>" />
+			</td>
+		</tr>
+	</table>
+<%=$site.boxb%>
+
+</form>
+
+<br />
+
+<%
+	if _get["choice"] == "dolookup"
+		long = Knj::Php.ip2long(_get["texip"])
+		
+		ip_range = $ob.get_by(:Ip_range, {
+			"ip_from_from" => long,
+			"ip_to_to" => long
+		})
+		
+		if !ip_range
+			%>
+				<%=$site.boxt(_("Result"), "350px")%>
+					<%=_("No IP range could be found for that IP.")%>
+				<%=$site.boxb%>
+			<%
+		else
+			%>
+				<%=$site.boxt(_("Result"), "350px")%>
+					<table class="form">
+						<%
+							print Knj::Web.inputs([{
+								:title => _("Country"),
+								:type => :info,
+								:value => ip_range.country.html
+							}])
+						%>
+					</table>
+					<pre><%
+						Knj::Php.print_r(ip_range.data)
+					%></pre>
+				<%=$site.boxb%>
+			<%
+		end
+	end
+%>

@@ -1,0 +1,61 @@
+<%
+	$site.request_init
+	
+	if _get["show"]
+		showpage = "../pages/#{_get["show"]}.rhtml"
+	else
+		showpage = "../pages/users_login.rhtml"
+	end
+%>
+<html>
+<head>
+	<title>IP locator</title>
+	<link rel="stylesheet" type="text/css" href="/css/default.css" />
+	<script type="text/javascript" src="/js/jquery.js"></script>
+</head>
+<body>
+	<center>
+	
+	<table style="width: 800px; height: 100%; border-left: 1px solid black; border-right: 1px solid black;" cellspacing="0" cellpadding="0">
+		<tr>
+			<td style="height: 120px;">
+				knjIPLocator
+			</td>
+		</tr>
+		<tr>
+			<td style="height: 30px; border-top: 1px solid black; border-bottom: 1px solid black;">
+				<%
+					menu = [
+						{"title" => _("Settings"), "link" => "/?show=settings"},
+						{"title" => _("Look up"), "link" => "/?show=lookup"}
+					]
+					
+					if !$site.user
+						menu << {"title" => _("Log in"), "link" => "/?show=users_login"}
+					else
+						menu << {"title" => _("Log out"), "link" => "/?show=users_login&choice=dologout"}
+					end
+					
+					menu.each do |menu_data|
+						print "<a href=\"#{menu_data["link"]}\">#{menu_data["title"]}</a> "
+					end
+				%>
+			</td>
+		</tr>
+		<tr>
+			<td style="padding: 6px; vertical-align: top;">
+				<%
+					_kas.import showpage
+				%>
+			</td>
+		</tr>
+		<tr>
+			<td style="height: 30px; text-align: center; border-top: 1px solid black;">
+				<%=sprintf(_("Made by %s"), "<a href=\"mailto:k@spernj.org\">Kasper Johansen</a>")%>
+			</td>
+		</tr>
+	</table>
+	
+	</center>
+</body>
+</html>

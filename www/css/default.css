@@ -1,0 +1,15 @@
+html, body, input, textarea, select, td{
+	font-family: verdana, tahoma, arial;
+	font-size: 10px;
+	color: black;
+}
+
+html, body{
+	padding: 0px;
+	margin: 0px;
+}
+
+td.tdt{
+	font-weight: bold;
+	white-space: nowrap;
+}

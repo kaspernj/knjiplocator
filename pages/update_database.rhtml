@@ -1,0 +1,147 @@
+<%
+	$site.require_admin
+	
+	if _get["choice"] == "doupdatestatus"
+		if $dl_thread
+			print $dl_thread["status"].html
+		end
+		
+		exit
+	end
+	
+	if _get["choice"] == "doupdatedatabase"
+		if !$dl_thread or !$dl_thread.alive?
+			$dl_thread = Knj::Thread.new do
+				begin
+					cur_thread = Thread.current
+					cur_thread["status"] = _("Initializing update.")
+					
+					cur_date = Knj::Datet.new
+					path_name = "#{$config[:path]}/files/software77_downloads/#{cur_date.date}_#{cur_date.month}_#{cur_date.year}.gz"
+					
+					#Download new file.
+					if !File.exists?(path_name)
+						cur_thread["status"] = _("Downloading")
+						
+						http = Knj::Http.new("host" => "software77.net")
+						cont = http.get("/geo-ip/?DL=1")
+						
+						if cont["data"].index(/Too many hits from ([\d\.]+?)\. Please try again later<br>/) != nil
+							raise _("Too many downloads - could not download updated file.")
+						end
+						
+						Knj::Php.file_put_contents(path_name, cont["data"])
+					end
+					
+					
+					cur_thread["status"] = _("Removing all previous IP ranges.")
+					ip_ranges = $ob.list(:Ip_range)
+					$ob.deletes(ip_ranges)
+					
+					
+					cur_thread["status"] = _("Creating country cache.")
+					country_cache = {}
+					$ob.list(:Country) do |country|
+						country_cache[country[:name_short2]] = country
+					end
+					
+					
+					adds = []
+					adds_total = 0
+					cur_thread["status"] = _("Reading file and adding new IP ranges.")
+					File.open(path_name) do |fp|
+						gz = Zlib::GzipReader.new(fp)
+						
+						while !gz.eof?
+							line = Knj::Php.utf8_decode(gz.gets.strip)
+							next if line.slice(0, 1) == "#"
+							
+							CSV.parse(line) do |row|
+								country_data = {
+									:name => row[6],
+									:name_short2 => row[4],
+									:name_short3 => row[5]
+								}
+								
+								country = country_cache[country_data[:name_short2]]
+								
+								if !country
+									country = $ob.add(:Country, country_data)
+									country_cache[country_data[:name_short2]] = country
+								end
+								
+								range_data = {
+									:ip_from => row[0],
+									:ip_to => row[1],
+									:country_id => country.id
+								}
+								adds << range_data
+								
+								if adds.length >= 5000
+									adds_total += adds.length
+									cur_thread["status"] = _("Reading file and adding new IP ranges.") + " (" + sprintf(_("%s added"), adds_total) + ")"
+									$ob.adds(:Ip_range, adds)
+									adds = []
+								end
+							end
+						end
+						
+						if adds.length > 0
+							$ob.adds(:Ip_range, adds)
+							adds = []
+						end
+						
+						gz.close
+					end
+					
+					cur_thread["status"] = _("Finished without errors.")
+				rescue Exception => e
+					cur_thread["status"] = sprintf(_("Error: %s"), e.message)
+					raise e
+				end
+			end
+		end
+		
+		Knj::Web.redirect("/?show=update_database")
+	end
+	
+	print $site.header(_("Update database"))
+	
+	if $dl_thread
+		%>
+			<%=$site.boxt(_("Update running"), "450px")%>
+				<table class="form">
+					<%
+						print Knj::Web.inputs([{
+							:title => _("Status"),
+							:type => :info,
+							:value => $dl_thread["status"]
+						}])
+					%>
+				</table>
+			<%=$site.boxb%>
+			
+			<script type="text/javascript">
+				function update_status(){
+					$.ajax({type: "GET", url: "/clean.rhtml?show=update_database&choice=doupdatestatus", async: true, cache: false, complete: function(data){
+						$($("table.form > tbody > tr > td").get(1)).html(data.responseText);
+					}});
+					
+					setTimeout("update_status();", 1000);
+				}
+				
+				update_status();
+			</script>
+			
+			<br />
+		<%
+	end
+	
+	if !$dl_thread or !$dl_thread.alive?
+		%>
+			<%=$site.boxt(_("Options"), "450px")%>
+				<input type="button" value="<%=_("Do update")%>" onclick="location.href='/?show=update_database&amp;choice=doupdatedatabase';" />
+			<%=$site.boxb%>
+		<%
+	end
+%>
