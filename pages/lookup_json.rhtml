@@ -1,0 +1,35 @@
+<%
+	begin
+		long = Knj::Php.ip2long(_get["ip"])
+		
+		ip_range = $ob.get_by(:Ip_range, {
+			"ip_from_from" => long,
+			"ip_to_to" => long
+		})
+		
+		if !ip_range
+			print Knj::Php.json_encode(
+				"type" => "error",
+				"code" => 404,
+				"message" => _("No IP range was found.")
+			)
+		else
+			country = ip_range.country
+			
+			print Knj::Php.json_encode(
+				"type" => "success",
+				"code" => 200,
+				"country" => country.data,
+				"ip_range" => ip_range.data,
+				"ip_range_from" => Knj::Php.long2ip(ip_range.data[:ip_from]),
+				"ip_range_to" => Knj::Php.long2ip(ip_range.data[:ip_to])
+			)
+		end
+	rescue Exception => e
+		print Knj::Php.json_encode(
+			"type" => "error",
+			"code" => 500,
+			"message" => e.message.to_s
+		)
+	end
+%>
